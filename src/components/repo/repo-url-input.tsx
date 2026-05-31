@@ -2,8 +2,8 @@
 
 import { useState, useCallback, FormEvent } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface RepoUrlInputProps {
   onSubmit: (url: string) => void;
@@ -22,6 +22,8 @@ export function RepoUrlInput({ onSubmit, isLoading }: RepoUrlInputProps) {
     [url, onSubmit]
   );
 
+  const disabled = isLoading || !url.trim();
+
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
       <Input
@@ -31,13 +33,22 @@ export function RepoUrlInput({ onSubmit, isLoading }: RepoUrlInputProps) {
         className="text-xs h-8"
         disabled={isLoading}
       />
-      <Button type="submit" size="sm" disabled={isLoading || !url.trim()} className="h-8 px-3">
+      <button
+        type="submit"
+        disabled={disabled}
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center rounded-lg h-8 w-8",
+          "text-sm font-medium transition-colors outline-none",
+          "bg-primary text-primary-foreground hover:bg-primary/80",
+          "disabled:pointer-events-none disabled:opacity-50"
+        )}
+      >
         {isLoading ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
           <Search className="w-3.5 h-3.5" />
         )}
-      </Button>
+      </button>
     </form>
   );
 }

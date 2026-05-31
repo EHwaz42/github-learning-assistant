@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ghFetch } from "@/lib/github/client";
 import { parseGitHubUrl } from "@/lib/github/repo-parser";
+import { readSettings, effectiveGithubToken } from "@/lib/settings/config";
 import { RepoInfo, FileNode } from "@/types";
 
 const IGNORE_PATTERNS = [
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { owner, repo } = parsed;
+    const settings = await readSettings();
+    const token = effectiveGithubToken(settings);
 
     // Fetch repo metadata
     const repoData = await ghFetch<{
@@ -33,7 +36,7 @@ export async function POST(req: NextRequest) {
       language: string;
       topics: string[];
       default_branch: string;
-    }>(`/repos/${owner}/${repo}`);
+    }>(`/repos/${owner}/${repo}`, {}, token);
 
     const repoInfo: RepoInfo = {
       owner,
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
     const treeData = await ghFetch<{
       tree: { path: string; type: string; size?: number }[];
       truncated: boolean;
-    }>(`/repos/${owner}/${repo}/git/trees/${repoData.default_branch}?recursive=1`);
+    }>(`/repos/${owner}/${repo}/git/trees/${repoData.default_branch}?recursive=1`, {}, token);
 
     const fileTree = buildFileTree(treeData.tree);
 
@@ -58,7 +61,7 @@ export async function POST(req: NextRequest) {
     let readme = "";
     try {
       const readmeData = await ghFetch<{ content: string }>(
-        `/repos/${owner}/${repo}/readme`
+        `/repos/${owner}/${repo}/readme`, {}, token
       );
       readme = Buffer.from(readmeData.content, "base64").toString("utf-8");
     } catch {
@@ -77,9 +80,15 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "";
+    if (message === "BAD_CREDENTIALS") {
+      return NextResponse.json(
+        { success: false, error: { code: "BAD_CREDENTIALS", message: "GITHUB_TOKEN 无效，请在侧边栏「API 调用」中检查 token 是否正确" } },
+        { status: 401 }
+      );
+    }
     if (message === "RATE_LIMITED") {
       return NextResponse.json(
-        { success: false, error: { code: "RATE_LIMITED", message: "GitHub API 速率限制，请稍后再试" } },
+        { success: false, error: { code: "RATE_LIMITED", message: "GitHub API 速率限制，请稍后再试或设置 GITHUB_TOKEN" } },
         { status: 429 }
       );
     }

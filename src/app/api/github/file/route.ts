@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ghFetch } from "@/lib/github/client";
+import { readSettings, effectiveGithubToken } from "@/lib/settings/config";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -15,11 +16,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const settings = await readSettings();
+    const token = effectiveGithubToken(settings);
+
     const data = await ghFetch<{
       content: string;
       size: number;
       encoding: string;
-    }>(`/repos/${owner}/${repo}/contents/${path}`);
+    }>(`/repos/${owner}/${repo}/contents/${path}`, {}, token);
 
     if (data.size > 100_000) {
       return NextResponse.json(
@@ -35,7 +39,14 @@ export async function GET(req: NextRequest) {
       success: true,
       data: { path, content, size: data.size, language: lang },
     });
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    if (message === "BAD_CREDENTIALS") {
+      return NextResponse.json(
+        { success: false, error: { code: "BAD_CREDENTIALS", message: "GITHUB_TOKEN 无效，请在侧边栏「API 调用」中检查 token 是否正确" } },
+        { status: 401 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: { code: "NOT_FOUND", message: "文件不存在" } },
       { status: 404 }

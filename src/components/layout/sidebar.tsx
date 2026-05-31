@@ -5,7 +5,10 @@ import { RepoPanel } from "@/components/repo/repo-panel";
 import { DiscoveryPanel } from "@/components/discovery/discovery-panel";
 import { LearningGuide } from "@/components/learning/learning-guide";
 import { cn } from "@/lib/utils";
-import { MessageSquare, Compass, GraduationCap, PanelLeftClose, PanelLeft } from "lucide-react";
+import { MessageSquare, Compass, GraduationCap, PanelLeftClose, PanelLeft, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { SettingsDialog } from "@/components/settings/settings-dialog";
+import { useSettingsStore } from "@/store/settings-store";
 import { Button } from "@/components/ui/button";
 
 const panels = [
@@ -16,6 +19,13 @@ const panels = [
 
 export function Sidebar() {
   const { sidebarOpen, activePanel, setActivePanel, toggleSidebar } = useUIStore();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
+  const configured = useSettingsStore((s) => s.configured);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   if (!sidebarOpen) {
     return (
@@ -40,6 +50,19 @@ export function Sidebar() {
             <p.icon className="w-4 h-4" />
           </Button>
         ))}
+        <div className="mt-auto" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 relative"
+          onClick={() => setSettingsOpen(true)}
+          title="API 配置"
+        >
+          <Settings className="w-4 h-4" />
+          {!configured && (
+            <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-orange-400 rounded-full" />
+          )}
+        </Button>
       </div>
     );
   }
@@ -76,6 +99,23 @@ export function Sidebar() {
         {activePanel === "discovery" && <DiscoveryPanel />}
         {activePanel === "learning" && <LearningGuide />}
       </div>
+
+      <div className="border-t p-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 text-xs"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings className="w-3.5 h-3.5" />
+          API 调用
+          {!configured && (
+            <span className="ml-auto w-2 h-2 bg-orange-400 rounded-full" />
+          )}
+        </Button>
+      </div>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
