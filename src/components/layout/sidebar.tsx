@@ -70,7 +70,7 @@ export function Sidebar() {
   return (
     <div className="border-r bg-muted/20 flex flex-col w-72">
       <div className="flex items-center justify-between p-3 border-b">
-        <span className="text-sm font-semibold">GitHub 学习助手</span>
+        <span className="text-sm font-semibold">开源项目学习助手</span>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleSidebar}>
           <PanelLeftClose className="w-4 h-4" />
         </Button>

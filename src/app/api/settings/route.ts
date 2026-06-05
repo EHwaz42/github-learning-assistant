@@ -12,6 +12,7 @@ const ALLOWED_FIELDS = [
   "openaiModel",
   "openaiBaseURL",
   "githubToken",
+  "giteeToken",
 ];
 
 export async function GET() {

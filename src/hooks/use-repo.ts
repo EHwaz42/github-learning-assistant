@@ -64,7 +64,7 @@ export function useRepo() {
 
       try {
         const res = await fetch(
-          `/api/github/file?owner=${repo.owner}&repo=${repo.repo}&path=${encodeURIComponent(path)}`
+          `/api/github/file?owner=${repo.owner}&repo=${repo.repo}&path=${encodeURIComponent(path)}&platform=${repo.platform}`
         );
         const data = await res.json();
 

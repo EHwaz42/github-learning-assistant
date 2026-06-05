@@ -1,4 +1,5 @@
 import { ChatContext } from "@/types";
+import { detectLanguage } from "@/lib/shared/language-detector";
 import {
   BASE_PROMPT,
   REPO_ANALYSIS_PROMPT,
@@ -17,6 +18,7 @@ export function buildSystemPrompt(context?: ChatContext): string {
       REPO_ANALYSIS_PROMPT
         .replace("{owner}", context.repo.owner)
         .replace("{repo}", context.repo.repo)
+        .replace("{platform}", context.repo.platform === "gitee" ? "Gitee" : "GitHub")
         .replace("{description}", context.repo.description || "无描述")
         .replace("{language}", context.repo.language || "未知")
         .replace("{stars}", String(context.repo.stars))
@@ -57,40 +59,4 @@ export function buildSystemPrompt(context?: ChatContext): string {
   }
 
   return parts.join("\n\n---\n\n");
-}
-
-function detectLanguage(filePath: string): string {
-  const ext = filePath.split(".").pop()?.toLowerCase();
-  const map: Record<string, string> = {
-    ts: "typescript",
-    tsx: "tsx",
-    js: "javascript",
-    jsx: "jsx",
-    py: "python",
-    rs: "rust",
-    go: "go",
-    java: "java",
-    rb: "ruby",
-    php: "php",
-    css: "css",
-    html: "html",
-    json: "json",
-    yaml: "yaml",
-    yml: "yaml",
-    md: "markdown",
-    sql: "sql",
-    sh: "bash",
-    c: "c",
-    cpp: "cpp",
-    h: "c",
-    vue: "vue",
-    svelte: "svelte",
-    swift: "swift",
-    kt: "kotlin",
-    scala: "scala",
-    dart: "dart",
-    lua: "lua",
-    r: "r",
-  };
-  return map[ext || ""] || "plaintext";
 }

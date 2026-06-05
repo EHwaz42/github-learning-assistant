@@ -6,7 +6,7 @@ import { useChat } from "@/hooks/use-chat";
 import { useRepoStore } from "@/store/repo-store";
 import { MessageItem } from "@/components/chat/message-item";
 import { ChatInput } from "@/components/chat/chat-input";
-import { parseGitHubUrl } from "@/lib/github/repo-parser";
+import { parseRepoUrl } from "@/lib/shared/repo-parser";
 import { useRepo } from "@/hooks/use-repo";
 import { Minimize2, Maximize2, X, GripHorizontal } from "lucide-react";
 
@@ -82,7 +82,7 @@ export function MiniPopup() {
 
   const handleSend = useCallback(
     (content: string) => {
-      const urlMatch = parseGitHubUrl(content);
+      const urlMatch = parseRepoUrl(content);
       if (urlMatch && !repo) {
         analyzeUrl(content);
       }
@@ -140,7 +140,7 @@ export function MiniPopup() {
             {messages.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-xs text-muted-foreground">
-                  粘贴 GitHub 链接或输入问题，我来帮你理解项目
+                  粘贴 GitHub / Gitee 链接或输入问题，我来帮你理解项目
                 </p>
               </div>
             ) : (

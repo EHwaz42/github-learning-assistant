@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ghFetch } from "@/lib/github/client";
-import { readSettings, effectiveGithubToken } from "@/lib/settings/config";
+import { giteeFetch } from "@/lib/gitee/client";
+import { readSettings, effectiveGithubToken, effectiveGiteeToken } from "@/lib/settings/config";
+import type { Platform } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { query, language, maxResults = 5 } = await req.json();
+    const { query, language, maxResults = 5, platform = "github" } = await req.json();
 
     if (!query) {
       return NextResponse.json(
@@ -19,10 +21,15 @@ export async function POST(req: NextRequest) {
     }
 
     const settings = await readSettings();
-    const token = effectiveGithubToken(settings);
+    const p = platform as Platform;
 
-    const data = await ghFetch<{
-      items: {
+    const fetcher = p === "gitee" ? giteeFetch : ghFetch;
+    const token = p === "gitee"
+      ? effectiveGiteeToken(settings)
+      : effectiveGithubToken(settings);
+
+    const data = await fetcher<{
+      items?: {
         full_name: string;
         description: string;
         stargazers_count: number;
@@ -42,7 +49,9 @@ export async function POST(req: NextRequest) {
       },
     }, token);
 
-    const results = data.items.map((item) => ({
+    // Gitee returns different keys for search results
+    const items = data.items || (data as unknown as { repos?: typeof data.items }).repos || [];
+    const results = (Array.isArray(items) ? items : []).map((item) => ({
       owner: item.owner.login,
       repo: item.name,
       fullName: item.full_name,
@@ -63,13 +72,13 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : "";
     if (message === "BAD_CREDENTIALS") {
       return NextResponse.json(
-        { success: false, error: { code: "BAD_CREDENTIALS", message: "GITHUB_TOKEN 无效，请在侧边栏「API 调用」中检查 token 是否正确" } },
+        { success: false, error: { code: "BAD_CREDENTIALS", message: "API Token 无效" } },
         { status: 401 }
       );
     }
     if (message === "RATE_LIMITED") {
       return NextResponse.json(
-        { success: false, error: { code: "RATE_LIMITED", message: "GitHub API 速率限制" } },
+        { success: false, error: { code: "RATE_LIMITED", message: "API 速率限制" } },
         { status: 429 }
       );
     }

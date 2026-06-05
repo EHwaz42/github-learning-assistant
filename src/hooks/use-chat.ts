@@ -44,6 +44,7 @@ export function useChat() {
         context.repo = {
           owner: repo.owner,
           repo: repo.repo,
+          platform: repo.platform,
           description: repo.description,
           language: repo.language,
           topics: repo.topics,

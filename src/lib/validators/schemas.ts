@@ -1,10 +1,10 @@
 import { z } from "zod/v4";
 
-export const githubUrlSchema = z.string().refine(
+export const repoUrlSchema = z.string().refine(
   (val) => {
-    return /^https?:\/\/github\.com\/[^/]+\/[^/]+/.test(val.trim());
+    return /^https?:\/\/(github|gitee)\.com\/[^/]+\/[^/]+/.test(val.trim());
   },
-  { message: "请输入有效的 GitHub 仓库链接，例如 https://github.com/facebook/react" }
+  { message: "请输入有效的仓库链接，例如 https://github.com/facebook/react 或 https://gitee.com/openeuler/kernel" }
 );
 
 export const chatMessageSchema = z.object({

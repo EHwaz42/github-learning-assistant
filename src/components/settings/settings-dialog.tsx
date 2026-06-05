@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSettingsStore } from "@/store/settings-store";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,21 +30,9 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
   const [openaiModel, setOpenaiModel] = useState("");
   const [openaiBaseURL, setOpenaiBaseURL] = useState("");
   const [githubToken, setGithubToken] = useState("");
+  const [giteeToken, setGiteeToken] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setProvider(store.provider);
-      setAnthropicModel(store.anthropicModel);
-      setOpenaiModel(store.openaiModel);
-      setOpenaiBaseURL(store.openaiBaseURL);
-      setAnthropicApiKey("");
-      setOpenaiApiKey("");
-      setGithubToken("");
-      setSaved(false);
-    }
-  }, [open, store.provider, store.anthropicModel, store.openaiModel, store.openaiBaseURL]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -55,6 +43,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
     if (openaiModel) partial.openaiModel = openaiModel;
     if (openaiBaseURL) partial.openaiBaseURL = openaiBaseURL;
     if (githubToken) partial.githubToken = githubToken;
+    if (giteeToken) partial.giteeToken = giteeToken;
 
     const ok = await store.saveSettings(partial);
     setSaving(false);
@@ -63,6 +52,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
       setAnthropicApiKey("");
       setOpenaiApiKey("");
       setGithubToken("");
+      setGiteeToken("");
       setTimeout(() => setSaved(false), 2000);
     }
   };
@@ -79,7 +69,7 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent key={String(open)} className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>API 调用</DialogTitle>
         </DialogHeader>
@@ -193,6 +183,42 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
               不填则匿名访问（60 次/小时），填入 token 后提升至 5000 次/小时。
               <a
                 href="https://github.com/settings/tokens"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 ml-1"
+              >
+                创建 token →
+              </a>
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* ---- Gitee ---- */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-3">
+              Gitee
+            </p>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-muted-foreground">
+                私人令牌
+                <span className="text-muted-foreground/50"> · 可选，提升限流</span>
+              </span>
+              <Input
+                type="password"
+                placeholder={
+                  store.hasGiteeToken ? "已设置 (输入新值覆盖)" : "输入 Gitee 私人令牌..."
+                }
+                value={giteeToken}
+                onChange={(e) => setGiteeToken(e.target.value)}
+                className="font-mono"
+              />
+            </label>
+            <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+              不填则匿名访问，填入 token 后提升 API 限额。
+              <a
+                href="https://gitee.com/profile/personal_access_tokens"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2 ml-1"

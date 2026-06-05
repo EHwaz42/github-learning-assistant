@@ -33,7 +33,7 @@ export function RepoPanel() {
         <div className="p-3 border-b space-y-2">
           <h3 className="font-semibold text-sm truncate">
             <a
-              href={`https://github.com/${repo.owner}/${repo.repo}`}
+              href={`https://${repo.platform}.com/${repo.owner}/${repo.repo}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline inline-flex items-center gap-1"

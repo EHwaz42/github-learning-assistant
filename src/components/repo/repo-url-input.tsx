@@ -29,7 +29,7 @@ export function RepoUrlInput({ onSubmit, isLoading }: RepoUrlInputProps) {
       <Input
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        placeholder="粘贴 GitHub 仓库链接..."
+        placeholder="粘贴 GitHub / Gitee 仓库链接..."
         className="text-xs h-8"
         disabled={isLoading}
       />

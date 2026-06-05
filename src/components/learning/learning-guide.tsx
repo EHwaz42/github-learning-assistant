@@ -138,7 +138,7 @@ export function LearningGuide() {
         <div className="p-3">
           {steps.length === 0 && !isGenerating && (
             <p className="text-xs text-muted-foreground text-center py-4">
-              点击"生成学习路径"，AI 将为你规划学习顺序
+              点击&ldquo;生成学习路径&rdquo;，AI 将为你规划学习顺序
             </p>
           )}
 

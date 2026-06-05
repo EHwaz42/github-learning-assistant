@@ -11,6 +11,7 @@ export interface ApiSettings {
   openaiModel: string;
   openaiBaseURL: string;
   githubToken: string;
+  giteeToken: string;
 }
 
 const CONFIG_PATH = path.join(process.cwd(), ".api-config.json");
@@ -23,6 +24,7 @@ const DEFAULTS: ApiSettings = {
   openaiModel: "gpt-4o",
   openaiBaseURL: "",
   githubToken: "",
+  giteeToken: "",
 };
 
 const PLACEHOLDER_TOKENS = [
@@ -65,9 +67,11 @@ export function maskSettings(s: ApiSettings) {
     openaiModel: s.openaiModel,
     openaiBaseURL: s.openaiBaseURL,
     githubToken: maskKey(s.githubToken),
+    giteeToken: maskKey(s.giteeToken),
     hasAnthropicKey: !!s.anthropicApiKey,
     hasOpenAIKey: !!s.openaiApiKey,
     hasGithubToken: !!s.githubToken && !isPlaceholder(s.githubToken),
+    hasGiteeToken: !!s.giteeToken && !isPlaceholder(s.giteeToken),
   };
 }
 
@@ -100,6 +104,16 @@ export function effectiveConfig(s: ApiSettings) {
 /** Get the effective GitHub token: settings first, then env, filtering placeholders */
 export function effectiveGithubToken(s: ApiSettings): string {
   const candidates = [s.githubToken, process.env.GITHUB_TOKEN || ""];
+  for (const t of candidates) {
+    const trimmed = t.trim();
+    if (trimmed && !isPlaceholder(trimmed)) return trimmed;
+  }
+  return "";
+}
+
+/** Get the effective Gitee token: settings first, then env, filtering placeholders */
+export function effectiveGiteeToken(s: ApiSettings): string {
+  const candidates = [s.giteeToken, process.env.GITEE_TOKEN || ""];
   for (const t of candidates) {
     const trimmed = t.trim();
     if (trimmed && !isPlaceholder(trimmed)) return trimmed;

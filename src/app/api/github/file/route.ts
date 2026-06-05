@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ghFetch } from "@/lib/github/client";
-import { readSettings, effectiveGithubToken } from "@/lib/settings/config";
+import { giteeFetch } from "@/lib/gitee/client";
+import { detectLanguage } from "@/lib/shared/language-detector";
+import { readSettings, effectiveGithubToken, effectiveGiteeToken } from "@/lib/settings/config";
+import type { Platform } from "@/types";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const owner = searchParams.get("owner");
   const repo = searchParams.get("repo");
   const path = searchParams.get("path");
+  const platform = searchParams.get("platform") as Platform | null;
 
-  if (!owner || !repo || !path) {
+  if (!owner || !repo || !path || !platform) {
     return NextResponse.json(
       { success: false, error: { code: "VALIDATION_ERROR", message: "缺少参数" } },
       { status: 400 }
@@ -17,9 +21,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const settings = await readSettings();
-    const token = effectiveGithubToken(settings);
 
-    const data = await ghFetch<{
+    const fetcher = platform === "gitee" ? giteeFetch : ghFetch;
+    const token = platform === "gitee"
+      ? effectiveGiteeToken(settings)
+      : effectiveGithubToken(settings);
+
+    const data = await fetcher<{
       content: string;
       size: number;
       encoding: string;
@@ -43,7 +51,7 @@ export async function GET(req: NextRequest) {
     const message = err instanceof Error ? err.message : "";
     if (message === "BAD_CREDENTIALS") {
       return NextResponse.json(
-        { success: false, error: { code: "BAD_CREDENTIALS", message: "GITHUB_TOKEN 无效，请在侧边栏「API 调用」中检查 token 是否正确" } },
+        { success: false, error: { code: "BAD_CREDENTIALS", message: "API Token 无效" } },
         { status: 401 }
       );
     }
@@ -52,15 +60,4 @@ export async function GET(req: NextRequest) {
       { status: 404 }
     );
   }
-}
-
-function detectLanguage(filePath: string): string {
-  const ext = filePath.split(".").pop()?.toLowerCase();
-  const map: Record<string, string> = {
-    ts: "typescript", tsx: "tsx", js: "javascript", jsx: "jsx",
-    py: "python", rs: "rust", go: "go", java: "java",
-    css: "css", html: "html", json: "json", md: "markdown",
-    sql: "sql", sh: "bash", yml: "yaml", yaml: "yaml",
-  };
-  return map[ext || ""] || "plaintext";
 }

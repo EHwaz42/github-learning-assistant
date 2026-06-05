@@ -1,35 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ghFetch } from "@/lib/github/client";
-import { parseGitHubUrl } from "@/lib/github/repo-parser";
-import { readSettings, effectiveGithubToken } from "@/lib/settings/config";
-import { RepoInfo, FileNode } from "@/types";
-
-const IGNORE_PATTERNS = [
-  "node_modules", ".git", "dist", "build", "__pycache__",
-  ".next", "vendor", ".cache", "coverage", ".nyc_output",
-  "target", "out", ".turbo", ".idea", ".vscode",
-];
-const MAX_FILES = 200;
-const MAX_DEPTH = 4;
+import { giteeFetch } from "@/lib/gitee/client";
+import { parseRepoUrl } from "@/lib/shared/repo-parser";
+import { buildFileTree, countFiles } from "@/lib/shared/file-tree";
+import { readSettings, effectiveGithubToken, effectiveGiteeToken } from "@/lib/settings/config";
+import { RepoInfo } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json();
 
-    const parsed = parseGitHubUrl(url);
+    const parsed = parseRepoUrl(url);
     if (!parsed) {
       return NextResponse.json(
-        { success: false, error: { code: "INVALID_URL", message: "无效的 GitHub 链接" } },
+        { success: false, error: { code: "INVALID_URL", message: "无效的仓库链接，请输入 GitHub 或 Gitee 仓库地址" } },
         { status: 400 }
       );
     }
 
-    const { owner, repo } = parsed;
+    const { platform, owner, repo } = parsed;
     const settings = await readSettings();
-    const token = effectiveGithubToken(settings);
+
+    const fetcher = platform === "gitee" ? giteeFetch : ghFetch;
+    const token = platform === "gitee"
+      ? effectiveGiteeToken(settings)
+      : effectiveGithubToken(settings);
 
     // Fetch repo metadata
-    const repoData = await ghFetch<{
+    const repoData = await fetcher<{
       full_name: string;
       description: string;
       stargazers_count: number;
@@ -45,12 +43,13 @@ export async function POST(req: NextRequest) {
       description: repoData.description || "",
       stars: repoData.stargazers_count,
       language: repoData.language || "",
-      topics: repoData.topics || [],
+      topics: Array.isArray(repoData.topics) ? repoData.topics : [],
       defaultBranch: repoData.default_branch,
+      platform,
     };
 
     // Fetch file tree
-    const treeData = await ghFetch<{
+    const treeData = await fetcher<{
       tree: { path: string; type: string; size?: number }[];
       truncated: boolean;
     }>(`/repos/${owner}/${repo}/git/trees/${repoData.default_branch}?recursive=1`, {}, token);
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
     // Fetch README
     let readme = "";
     try {
-      const readmeData = await ghFetch<{ content: string }>(
+      const readmeData = await fetcher<{ content: string }>(
         `/repos/${owner}/${repo}/readme`, {}, token
       );
       readme = Buffer.from(readmeData.content, "base64").toString("utf-8");
@@ -74,7 +73,7 @@ export async function POST(req: NextRequest) {
         repo: repoInfo,
         fileTree,
         readme,
-        truncated: treeData.truncated || countFiles(fileTree) > MAX_FILES,
+        truncated: treeData.truncated || countFiles(fileTree) > 200,
         totalFiles: treeData.tree.length,
       },
     });
@@ -82,13 +81,13 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : "";
     if (message === "BAD_CREDENTIALS") {
       return NextResponse.json(
-        { success: false, error: { code: "BAD_CREDENTIALS", message: "GITHUB_TOKEN 无效，请在侧边栏「API 调用」中检查 token 是否正确" } },
+        { success: false, error: { code: "BAD_CREDENTIALS", message: "API Token 无效，请在侧边栏「API 调用」中检查 token 是否正确" } },
         { status: 401 }
       );
     }
     if (message === "RATE_LIMITED") {
       return NextResponse.json(
-        { success: false, error: { code: "RATE_LIMITED", message: "GitHub API 速率限制，请稍后再试或设置 GITHUB_TOKEN" } },
+        { success: false, error: { code: "RATE_LIMITED", message: "API 速率限制，请稍后再试或设置 Token" } },
         { status: 429 }
       );
     }
@@ -103,90 +102,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-function buildFileTree(
-  entries: { path: string; type: string; size?: number }[]
-): FileNode[] {
-  const root: FileNode[] = [];
-  const dirMap = new Map<string, FileNode>();
-  let fileCount = 0;
-
-  const filtered = entries.filter((e) => {
-    const parts = e.path.split("/");
-    if (parts.length > MAX_DEPTH) return false;
-    return !parts.some((p) => IGNORE_PATTERNS.includes(p));
-  });
-
-  for (const entry of filtered) {
-    if (fileCount >= MAX_FILES) break;
-
-    const parts = entry.path.split("/");
-    if (parts.length === 1) {
-      if (entry.type === "tree") {
-        const dir: FileNode = {
-          name: entry.path,
-          type: "dir",
-          path: entry.path,
-          children: [],
-        };
-        root.push(dir);
-        dirMap.set(entry.path, dir);
-      } else {
-        fileCount++;
-        root.push({
-          name: entry.path,
-          type: "file",
-          path: entry.path,
-          size: entry.size,
-        });
-      }
-    } else {
-      const parentPath = parts.slice(0, -1).join("/");
-      const parent = dirMap.get(parentPath);
-      if (!parent) continue;
-
-      if (entry.type === "tree") {
-        const dir: FileNode = {
-          name: parts[parts.length - 1],
-          type: "dir",
-          path: entry.path,
-          children: [],
-        };
-        parent.children = parent.children || [];
-        parent.children.push(dir);
-        dirMap.set(entry.path, dir);
-      } else {
-        fileCount++;
-        parent.children = parent.children || [];
-        parent.children.push({
-          name: parts[parts.length - 1],
-          type: "file",
-          path: entry.path,
-          size: entry.size,
-        });
-      }
-    }
-  }
-
-  // Sort: dirs first, then alphabetically
-  const sortNodes = (nodes: FileNode[]) => {
-    nodes.sort((a, b) => {
-      if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
-    nodes.forEach((n) => n.children && sortNodes(n.children));
-  };
-  sortNodes(root);
-
-  return root;
-}
-
-function countFiles(nodes: FileNode[]): number {
-  let count = 0;
-  for (const n of nodes) {
-    if (n.type === "file") count++;
-    if (n.children) count += countFiles(n.children);
-  }
-  return count;
 }

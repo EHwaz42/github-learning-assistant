@@ -6,7 +6,7 @@ import { useRepoStore } from "@/store/repo-store";
 import { MessageItem } from "./message-item";
 import { ChatInput } from "./chat-input";
 import { EmptyState } from "./empty-state";
-import { parseGitHubUrl } from "@/lib/github/repo-parser";
+import { parseRepoUrl } from "@/lib/shared/repo-parser";
 import { useRepo } from "@/hooks/use-repo";
 
 export function ChatInterface() {
@@ -22,7 +22,7 @@ export function ChatInterface() {
 
   const handleSend = useCallback(
     (content: string) => {
-      const urlMatch = parseGitHubUrl(content);
+      const urlMatch = parseRepoUrl(content);
       if (urlMatch && !repo) {
         analyzeUrl(content);
       }

@@ -1,3 +1,5 @@
+export type Platform = "github" | "gitee";
+
 export interface RepoInfo {
   owner: string;
   repo: string;
@@ -7,6 +9,7 @@ export interface RepoInfo {
   language: string;
   topics: string[];
   defaultBranch: string;
+  platform: Platform;
 }
 
 export interface FileNode {

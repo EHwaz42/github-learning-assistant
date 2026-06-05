@@ -9,9 +9,11 @@ export interface SettingsState {
   openaiModel: string;
   openaiBaseURL: string;
   githubToken: string;
+  giteeToken: string;
   hasAnthropicKey: boolean;
   hasOpenAIKey: boolean;
   hasGithubToken: boolean;
+  hasGiteeToken: boolean;
   loading: boolean;
   configured: boolean;
 
@@ -27,9 +29,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   openaiModel: "gpt-4o",
   openaiBaseURL: "",
   githubToken: "",
+  giteeToken: "",
   hasAnthropicKey: false,
   hasOpenAIKey: false,
   hasGithubToken: false,
+  hasGiteeToken: false,
   loading: true,
   configured: false,
 

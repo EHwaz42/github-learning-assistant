@@ -16,6 +16,7 @@ export interface ChatContext {
   repo?: {
     owner: string;
     repo: string;
+    platform: string;
     description: string;
     language: string;
     topics: string[];
