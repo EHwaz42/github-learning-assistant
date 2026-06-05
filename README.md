@@ -1,12 +1,12 @@
-# GitHub 学习助手
+# 开源项目学习助手
 
-帮助编程新手理解和学习 GitHub 开源项目的 AI 聊天应用。粘贴仓库链接即可让 AI 分析项目结构、解释代码，也可以描述兴趣让 AI 推荐适合入门的项目。
+帮助编程新手理解和学习 GitHub / Gitee 开源项目的 AI 聊天应用。粘贴仓库链接即可让 AI 分析项目结构、解释代码，也可以描述兴趣让 AI 推荐适合入门的项目。
 
 ## 功能
 
-- **仓库分析** — 粘贴 GitHub 链接，自动拉取文件树和 README，AI 解释项目架构和阅读入口
+- **仓库分析** — 粘贴 GitHub 或 Gitee 链接，自动拉取文件树和 README，AI 解释项目架构和阅读入口
 - **代码解释** — 点击文件树中的任意文件，AI 逐行解释代码逻辑
-- **项目发现** — 告诉 AI 你想学什么（"Python 爬虫"、"前端小项目"），搜索 GitHub 并给出入门友好度评级
+- **项目发现** — 告诉 AI 你想学什么（"Python 爬虫"、"前端小项目"），搜索仓库并给出入门友好度评级
 - **学习路径** — AI 为当前仓库生成 5 步学习计划，可跟踪进度
 - **迷你弹窗** — 右下角浮动窗口，可拖拽缩放，边看代码边聊天
 
@@ -30,9 +30,27 @@ npm install
 | OpenAI | `sk-...` | `gpt-4o` |
 | DeepSeek | `sk-...` | `deepseek-chat`（Base URL 自动填充） |
 
-**GitHub** — 可选，填入 Personal Access Token 可将 API 限额从 60 提升至 5000 次/小时。
+**GitHub / Gitee** — 可选，填入 Token 提升 API 限额：
 
-也可以使用环境变量（`.env.local`），UI 配置优先级高于环境变量，保存后即时生效。
+| 平台 | Token 获取地址 | 说明 |
+|---|---|---|
+| GitHub | https://github.com/settings/tokens | 公开仓库访问权限即可，60→5000 次/小时 |
+| Gitee | https://gitee.com/profile/personal_access_tokens | 私人令牌，提升匿名访问限额 |
+
+也可以使用环境变量（`.env.local`）：
+
+```bash
+# AI 提供商
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=...           # DeepSeek 等兼容端点
+
+# 仓库平台 Token（可选）
+GITHUB_TOKEN=ghp_...
+GITEE_TOKEN=...
+```
+
+UI 配置优先级高于环境变量，保存后即时生效。
 
 ### 3. 启动
 
@@ -51,7 +69,7 @@ npm run dev
 | UI | Tailwind CSS v4 + shadcn/ui (base-ui) |
 | AI | Anthropic / OpenAI / DeepSeek（SSE 流式响应） |
 | 状态管理 | Zustand |
-| GitHub | REST API (Octokit) |
+| 平台 | GitHub REST API / Gitee Open API v5 |
 | 图标 | Lucide React |
 
 ## 项目结构
@@ -62,7 +80,7 @@ src/
 │   ├── chat/route.ts            # AI 流式聊天（SSE），支持多提供商
 │   ├── settings/route.ts        # API 配置读写
 │   └── github/
-│       ├── repo/route.ts        # 仓库信息 + 文件树
+│       ├── repo/route.ts        # 仓库信息 + 文件树（自动识别 GitHub/Gitee）
 │       ├── search/route.ts      # 搜索仓库
 │       └── file/route.ts        # 获取文件内容
 ├── components/
@@ -78,6 +96,8 @@ src/
 │   ├── anthropic/               # Claude SDK + 提示模板
 │   ├── openai/                  # OpenAI SDK（兼容 DeepSeek）
 │   ├── github/                  # GitHub API 封装
+│   ├── gitee/                   # Gitee API 封装
+│   ├── shared/                  # 共享工具（URL 解析、文件树、语言检测）
 │   └── settings/                # 配置持久化
 ├── hooks/                       # useChat, useRepo, usePopup
 ├── store/                       # Zustand 状态管理（含 settings-store）
